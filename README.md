@@ -11,7 +11,7 @@ Utility to create scatter plot from raw Illumina Genome Studio exports
 - R-packages: ggplot2, tidyr and dplyr
 
 ## Expected format
-The tool expects a raw intensity GS report to have:
+The tool expects the export to have:
   - A header row 
   - 3 first columns: name, chromosome and position of marker
   - After the 3 first columns - every 3 columns per sample:
