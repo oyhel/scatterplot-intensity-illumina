@@ -67,14 +67,14 @@ plot.row <- function(row){
 }
 
 # Calculate the number of cores
-#no_cores <- detectCores() - 1
+no_cores <- detectCores() - 1
 
 # Initiate cluster
-#cl <- makeCluster(no_cores, type="FORK")
+cl <- makeCluster(no_cores, type="FORK")
 
-#parApply(cl, snp[2:dim(snp)[1],], 1, FUN = plot.row)
+parApply(cl, snp[2:dim(snp)[1],], 1, FUN = plot.row)
 
-apply(snp[2:dim(snp)[1],], 1, FUN = plot.row)
+#apply(snp[2:dim(snp)[1],], 1, FUN = plot.row)
 
 # plot a chopped version where some signal intensisites are subset
 #p2 <- ggplot(subset(total, X<3 & Y < 10)) + geom_point(aes(X,Y, col=Call)) + ggtitle(snp.name)    

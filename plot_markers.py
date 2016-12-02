@@ -91,10 +91,11 @@ def fetch_intensity_row(marker, pos):
 attach_header()
 
 for m in open(args.markerlist, "r"):
-	marker = m.strip()
-	# Check if marker in list exists in lookuptable (aka. indexfile)
-	if marker in lookup:
-	    fetch_intensity_row(marker, lookup[marker])
+    marker = m.strip()
+    # Check if marker in list exists in lookuptable (aka. indexfile)
+    if marker in lookup:
+        print(marker)
+        fetch_intensity_row(marker, lookup[marker])
 
 
 # Write only the rows to tmp output before sending it to R script
