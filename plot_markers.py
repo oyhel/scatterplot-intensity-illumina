@@ -4,6 +4,7 @@ import sys
 import argparse
 import subprocess
 import os
+import warnings
 
 ### PARSE COMMAND LINE ARGUMENTS
 
@@ -86,8 +87,9 @@ def fetch_intensity_row(f, marker, pos):
     table.seek(int(pos))
     row = table.readline()
     rowmarker = row.split()[0]
-    if rowmarker == marker:
-        print("rowmarker matches marker")
+    if rowmarker != marker:
+        print("ERROR: Marker in row does not match expected marker")
+        sys.exit()
     rowlist.append(row)
 
 
@@ -127,8 +129,9 @@ for m in open(args.markerlist, "r"):
     marker = m.strip()
     # Check if marker in list exists in lookuptable (aka. indexfile)
     if marker in lookup:
-        print(marker)
         fetch_intensity_row(table, marker, lookup[marker])
+    else:
+        warnings.warn("Marker " + marker + " is not found in intensity file index")
 
 # Specify temporary file
 tmpoutfile = os.path.join(args.outpath, 'tmpout-54543463.txt')
