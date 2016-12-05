@@ -7,19 +7,22 @@ import os
 
 ### PARSE COMMAND LINE ARGUMENTS
 
-parser = argparse.ArgumentParser(description='Extract intensity info rows from file')
+parser = argparse.ArgumentParser(description='Creates intensity plots for a list of markers using data from Genome Studio export')
 parser.add_argument('-t', '--table', help='path to full intensity table')
-parser.add_argument('-i', '--indexfile', help='corresponding index file for fulltable')
-parser.add_argument('-m', '--markerlist', help='list of markers to plot')
-parser.add_argument('-o', '--outpath', help='output path of plots and index')
-parser.add_argument('-r', '--reindex', help='reindex intensity file', action='store_true')
+parser.add_argument('-i', '--indexfile', help='path to corresponding index file for full intensity table (if index file does not exist it will be created at this location)')
+parser.add_argument('-m', '--markerlist', help='list of markers to plot (one marker per line)')
+parser.add_argument('-o', '--outpath', help='output path of plots')
+parser.add_argument('-r', '--reindex', help='reindex intensity file (this is done automatically if indexfile does not exist)', action='store_true')
 args = parser.parse_args()
 
-# Open full table file
-table = open(args.table, "r")
+# FUNCTION DECLARATION
 
-
-def index_intensity_file(f):
+def index_intensity_file(f, indexfile):
+    """ Indexes the intensity file
+    Args:
+        f: the file handler for the intensity table
+        indexfile: full path to index file
+    """
     # Create index tmp list
     index = []
 
@@ -50,16 +53,60 @@ def index_intensity_file(f):
             index.append(tmp)
 
     # Write to indexfile
-    indexfile = open(os.path.join(args.outpath, args.indexfile), 'w')
+    indexfile = open(indexfile, 'w')
     for i in index:
         indexfile.write(str(i)+'\n')
 
+
+def attach_header(f, l):
+    """ Attaches the first line of the input to the list.
+    I.e. attaches the header
+    Args:
+        f: file handler for the file
+        l: list to append to
+    Returns:
+        the list, l, with header appended
+    """
+    f.seek(0,0)
+    header = f.readline()
+    l.append(header)
+    return l
+
+
+# Fetch marker row from intensity file
+""" Extracts a single row from the intensity file given the marker name
+    and the byte position of the start of the line/row
+    Args:
+        f: file handler for the intensity file
+        marker: name of marker to extract
+        pos: byte position at the beginning of the line containing intensities for the marker. This is stored in the indexfile
+    """
+def fetch_intensity_row(f, marker, pos):
+    table.seek(0,0)
+    table.seek(int(pos))
+    row = table.readline()
+    rowmarker = row.split()[0]
+    if rowmarker == marker:
+        print("rowmarker matches marker")
+    rowlist.append(row)
+
+
+### SCRIPT ###
+
+# Open full intensity table file
+table = open(args.table, "r")
+
+# Reindex the intensity file if:
+# 1) --reindex flag is specified
+# 2) index file does not exist
+
 ind = ""
-if args.reindex:
-	index_intensity_file(table)
-	ind = os.path.join(args.outpath, args.indexfile)
+if args.reindex or not os.path.isfile(args.indexfile):
+	print("Indexing the intensity file to: " + str(args.indexfile))
+	index_intensity_file(table, args.indexfile)
+	ind = args.indexfile
 else:
-	ind= os.path.join(args.outpath, args.indexfile)
+	ind = args.indexfile
 
 # Load indexfile into lookup dictionary
 lookup = {}
@@ -67,46 +114,41 @@ lookup = {}
 with open(ind) as f:
     for line in f:
         (key,val) = line.split()
-        #print "key: " + str(key)
-        #print "val: " + val
         lookup[key] = val
 
-# Function to append header from fulltable
+# Create tmp list to store rows extracted from intensity table
 rowlist=[]
 
-# Function to append header from fulltable
-def attach_header():
-	table.seek(0,0)
-	header = table.readline()
-	rowlist.append(header)
+# Attach header from the intensity file to tmp list
+rowlist = attach_header(table, rowlist)
 
-
-# Fetch marker row from intensity file
-def fetch_intensity_row(marker, pos):
-	table.seek(0,0)
-	table.seek(int(pos))
-	row = table.readline()
-	rowlist.append(row)
-
-attach_header()
-
+# Iterate over markers in markerlist and fetch rows
 for m in open(args.markerlist, "r"):
     marker = m.strip()
     # Check if marker in list exists in lookuptable (aka. indexfile)
     if marker in lookup:
         print(marker)
-        fetch_intensity_row(marker, lookup[marker])
+        fetch_intensity_row(table, marker, lookup[marker])
 
+# Specify temporary file
+tmpoutfile = os.path.join(args.outpath, 'tmpout-54543463.txt')
 
-# Write only the rows to tmp output before sending it to R script
-tmpout = open(os.path.join(args.outpath, 'tmpout.txt'), 'a+')
+# Delete temporary file should it exist (eg. from a failed previous run)
+if os.path.isfile(tmpoutfile):
+    print("Removing existing temporary file: tmpout.txt")
+    os.remove(tmpoutfile)
+
+# Write the row list to tmp file
+tmpout = open(tmpoutfile, 'a+')
+
 for i in rowlist:
    tmpout.write(i)
 
+# Close file handler
 tmpout.close()
 
-# Call Rscript for plotting the markers
-subprocess.call (["/usr/bin/Rscript", "lib/make_cluster_plot.R", os.path.join(args.outpath, 'tmpout.txt'), args.outpath])
+# Call Rscript to plot the markers
+subprocess.call (["/usr/bin/Rscript", "lib/make_cluster_plot.R", tmpoutfile, args.outpath])
 
 # Remove tmpout.txt
-os.remove(os.path.join(args.outpath, 'tmpout.txt'))
+os.remove(tmpoutfile)
