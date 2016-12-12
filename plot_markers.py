@@ -53,7 +53,11 @@ def index_intensity_file(f, indexfile):
         if marker:
             index.append(tmp)
 
-    # Write to indexfile
+    # Write to indexfile after creating directory if needed
+    indexpath = os.path.dirname(indexfile)
+    if not os.path.exists(indexpath):
+        os.makedirs(indexpath)
+
     indexfile = open(indexfile, 'w')
     for i in index:
         indexfile.write(str(i)+'\n')
@@ -131,7 +135,8 @@ for m in open(args.markerlist, "r"):
     if marker in lookup:
         fetch_intensity_row(table, marker, lookup[marker])
     else:
-        warnings.warn("Marker " + marker + " is not found in intensity file index")
+        #warnings.warn("Marker " + marker + " is not found in intensity file index")
+        print("Marker " + marker + " is not found in intensity file index")
 
 # Specify temporary file
 tmpoutfile = os.path.join(args.outpath, 'tmpout-54543463.txt')
