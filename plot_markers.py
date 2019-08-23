@@ -13,6 +13,7 @@ parser.add_argument('-t', '--table', help='path to full intensity table')
 parser.add_argument('-i', '--indexfile', help='path to corresponding index file for full intensity table (if index file does not exist it will be created at this location)')
 parser.add_argument('-m', '--markerlist', help='list of markers to plot (one marker per line)')
 parser.add_argument('-o', '--outpath', help='output path of plots')
+parser.add_argument('-k', '--keeptmp', help='a subset of the full export is extracted temporarily while plotting, keeptmp will prevent deletion of this after plotting', action='store_true')
 parser.add_argument('-r', '--reindex', help='reindex intensity file (this is done automatically if indexfile does not exist)', action='store_true')
 args = parser.parse_args()
 
@@ -139,15 +140,19 @@ for m in open(args.markerlist, "r"):
         print("Marker " + marker + " is not found in intensity file index")
 
 # Specify temporary file
-tmpoutfile = os.path.join(args.outpath, 'tmpout-54543463.txt')
+tmpoutfile = os.path.join(args.outpath, 'export-extract-tmp.txt')
 
 # Delete temporary file should it exist (eg. from a failed previous run)
 if os.path.isfile(tmpoutfile):
     print("Removing existing temporary file: tmpout.txt")
     os.remove(tmpoutfile)
 
+# Make outpath if it does not exist
+if not os.path.exists(args.outpath):
+    os.makedirs(args.outpath)
+
 # Write the row list to tmp file
-tmpout = open(tmpoutfile, 'a+')
+tmpout = open(tmpoutfile, 'w+')
 
 for i in rowlist:
    tmpout.write(i)
@@ -159,4 +164,5 @@ tmpout.close()
 subprocess.call (["/usr/bin/Rscript", "lib/make_cluster_plot.R", tmpoutfile, args.outpath])
 
 # Remove tmpout.txt
-os.remove(tmpoutfile)
+if not args.keeptmp:
+    os.remove(tmpoutfile)
